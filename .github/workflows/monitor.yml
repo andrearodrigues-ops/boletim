@@ -1,27 +1,49 @@
-name: Monitor MS Boletins
+name: Monitor MS Boletins (diagnóstico)
 
 on:
-  schedule:
-    - cron: "0 3,15 * * *"  # 03:00 e 15:00 UTC (00h e 12h no Brasil)
   workflow_dispatch:
+  schedule:
+    - cron: "0 3,15 * * *"
 
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -r requirements.txt
-      - name: Run monitor
+
+      - name: Upgrade pip + wheel
+        run: |
+          python -m pip install --upgrade pip wheel
+
+      - name: Instalar dependências (com debug)
+        run: |
+          pip install -r requirements.txt
+          pip freeze
+
+      - name: Sanity check de imports
+        run: |
+          python - << 'PY'
+          import sys
+          print("Python:", sys.version)
+          for m in ["requests","bs4","pypdf","jinja2"]:
+              __import__(m if m!="bs4" else "bs4")
+              print("OK import:", m)
+          PY
+
+      - name: Rodar app com logs verbosos
         env:
           MS_URL: "https://www.gov.br/saude/pt-br/centrais-de-conteudo/publicacoes/boletins/epidemiologicos/ultimos"
           DB_PATH: boletins.db
           CHECK_LIMIT: "20"
-          LLM_PROVIDER: "OPENAI"
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'OPENAI' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           REPORT_TO_EMAIL: ${{ secrets.REPORT_TO_EMAIL }}
           REPORT_FROM_EMAIL: ${{ secrets.REPORT_FROM_EMAIL }}
-        run: python app.py
+        run: |
+          set -e
+          python app.py
