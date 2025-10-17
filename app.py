@@ -188,37 +188,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-Esse é o mesmo “motor” que eu te descrevi antes, agora ligado ao OpenAI e ao SendGrid.
-
-3) (Opcional, mas recomendado) Um template de e-mail melhor
-Se quiser deixar o e-mail mais bonito, edite templates/email.html.j2 no GitHub e cole isto:
-
-html
-Copiar código
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <meta charset="UTF-8"/>
-  <style>
-    body { font-family: system-ui, Arial, sans-serif; line-height: 1.5; }
-    .card { max-width: 760px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; }
-    h1 { font-size: 18px; margin: 0 0 8px; }
-    .meta { color: #6b7280; font-size: 12px; margin-bottom: 12px; }
-    .btn { display:inline-block; padding:10px 16px; border-radius:10px; background:#111827; color:#fff; text-decoration:none;}
-    pre { white-space: pre-wrap; font-size: 14px; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>{{ titulo }}</h1>
-    <div class="meta">Publicado em: {{ publicado_em or '—' }} ·
-      <a href="{{ link_pdf or link_page }}">Documento</a>
-    </div>
-    <pre>{{ resumo }}</pre>
-    <p><a class="btn" href="{{ link_pdf or link_page }}" target="_blank" rel="noopener">Abrir documento</a></p>
-    <div style="color:#6b7280;font-size:12px;margin-top:12px">
-      Resumo automatizado para fins informativos. Consulte sempre o documento oficial.
-    </div>
-  </div>
-</body>
-</html>
