@@ -3,7 +3,7 @@ name: Monitor MS Boletins (diagnóstico)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 3,15 * * *"
+    - cron: "0 10,15 * * *"
 
 jobs:
   run:
