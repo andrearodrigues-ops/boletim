@@ -1,0 +1,27 @@
+name: Monitor MS Boletins
+
+on:
+  schedule:
+    - cron: "0 3,15 * * *"  # 03:00 e 15:00 UTC (00h e 12h no Brasil)
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Run monitor
+        env:
+          MS_URL: "https://www.gov.br/saude/pt-br/centrais-de-conteudo/publicacoes/boletins/epidemiologicos/ultimos"
+          DB_PATH: boletins.db
+          CHECK_LIMIT: "20"
+          LLM_PROVIDER: "NONE"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          REPORT_TO_EMAIL: ${{ secrets.REPORT_TO_EMAIL }}
+          REPORT_FROM_EMAIL: ${{ secrets.REPORT_FROM_EMAIL }}
+        run: python app.py
