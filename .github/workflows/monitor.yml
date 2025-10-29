@@ -11,15 +11,18 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (com histórico completo)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # necessário para push sem erro
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
       - name: Upgrade pip + wheel
-        run: |
-          python -m pip install --upgrade pip wheel
+        run: python -m pip install --upgrade pip wheel
 
       - name: Instalar dependências (com debug)
         run: |
@@ -41,7 +44,7 @@ jobs:
           MS_URL: "https://www.gov.br/saude/pt-br/centrais-de-conteudo/publicacoes/boletins/epidemiologicos/ultimos"
           DB_PATH: boletins.db
           CHECK_LIMIT: "20"
-          # Se quiser garantir IA ligada, pode trocar para "OPENAI"
+          # Se quiser garantir IA ligada, fixe "OPENAI"; caso contrário, use uma repo variable LLM_PROVIDER
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'OPENAI' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
@@ -53,13 +56,19 @@ jobs:
 
       - name: Persistir banco (boletins.db)
         if: always()
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
         run: |
+          set -e
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # garante que estamos na branch certa e atualizados
+          git checkout "$BRANCH_NAME"
+          git pull --rebase origin "$BRANCH_NAME" || true
           if [ -f boletins.db ]; then
             git add boletins.db
             git commit -m "chore: update boletins DB [skip ci]" || echo "Sem alterações no banco"
-            git push
+            git push origin "$BRANCH_NAME"
           else
             echo "boletins.db não encontrado (primeira execução? verifique o app.py)."
           fi
