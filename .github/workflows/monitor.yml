@@ -5,7 +5,7 @@ permissions:
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 10,15 * * *"
+    - cron: "0 10,15 * * *"  # 10:00 e 15:00 UTC -> 07:00 e 12:00 em São Paulo
 
 jobs:
   run:
@@ -41,6 +41,7 @@ jobs:
           MS_URL: "https://www.gov.br/saude/pt-br/centrais-de-conteudo/publicacoes/boletins/epidemiologicos/ultimos"
           DB_PATH: boletins.db
           CHECK_LIMIT: "20"
+          # Se quiser garantir IA ligada, pode trocar para "OPENAI"
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'OPENAI' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
@@ -49,12 +50,12 @@ jobs:
         run: |
           set -e
           python app.py
+
       - name: Persistir banco (boletins.db)
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # garante que o arquivo existe antes de tentar comitar
           if [ -f boletins.db ]; then
             git add boletins.db
             git commit -m "chore: update boletins DB [skip ci]" || echo "Sem alterações no banco"
