@@ -225,13 +225,9 @@ def log_envio(conn, cur, boletim_id, canal, status):
     conn.commit()
 
 def main():
+    def main():
     conn, cur = db()
-
-    # 1) Detectar novidades
-    novos = []
-    for item in fetch_list():
-        if is_new(cur, item):
-            novos.append(item)
+    novos = [i for i in fetch_list() if is_new(cur, i)]
 
     if not novos:
         logging.info("Nenhuma novidade. Nada será enviado.")
@@ -239,35 +235,26 @@ def main():
 
     logging.info("Novos boletins detectados: %d", len(novos))
 
-    # 2) Persistir no banco (para não repetir no próximo run)
+    boletins_processados = []
+
     for item in novos:
         save_item(conn, cur, item)
-
-    # 3) Enriquecer + Resumir (cada um)
-    lote = []
-    for item in novos:
         pdf_link, text = find_pdf_and_text(item["url"])
         resumo = summarize(item["titulo"], text)
-        lote.append({
+        boletins_processados.append({
             "titulo": item["titulo"],
             "publicado_em": item.get("publicado_em"),
             "link_pdf": pdf_link,
             "link_page": item["url"],
-            "resumo": resumo,
+            "resumo": resumo
         })
 
-    # 4) Montar um único e-mail com tudo
-    html_body = render_email_batch(lote)
+    # Renderiza um único e-mail com todos os resumos
+    email_html = render_email_lista(boletins_processados)
+    subject = f"[MS] {len(boletins_processados)} novos boletins epidemiológicos"
 
-    # 5) Assunto amigável (contagem + data)
-    hoje = datetime.now(timezone.utc).strftime("%d/%m/%Y")
-    subject = f"[MS] {len(lote)} boletim(ns) novo(s) – {hoje}"
-
-    # 6) Enviar 1 e-mail
-    status = send_email(subject=subject, html_body=html_body)
-    logging.info("Envio consolidado: %s", status)
-
-
+    send_email(subject=subject, html_body=email_html)
+    logging.info("E-mail consolidado enviado com sucesso.")
 
 if __name__ == "__main__":
     main()
