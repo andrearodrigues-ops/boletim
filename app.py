@@ -133,6 +133,22 @@ Texto:
     return (prompt[:1500] + "...")
 
 def render_email(titulo, publicado_em, link_pdf, link_page, resumo):
+    def render_email_lista(boletins):
+    tpl_path = os.path.join("templates", "email_lista.html.j2")
+    if os.path.exists(tpl_path):
+        with open(tpl_path, "r", encoding="utf-8") as f:
+            tpl = Template(f.read())
+        return tpl.render(boletins=boletins)
+
+    # fallback simples
+    html = "<h1>Novos Boletins Epidemiológicos</h1>"
+    for b in boletins:
+        html += f"<h3>{b['titulo']}</h3>"
+        html += f"<p><strong>Publicado em:</strong> {b['publicado_em'] or '—'}</p>"
+        html += f"<a href='{b['link_pdf'] or b['link_page']}'>Abrir documento</a>"
+        html += f"<pre>{b['resumo']}</pre><hr>"
+    return html
+
     def render_email_batch(itens):
     """
     itens: lista de dicts com chaves:
