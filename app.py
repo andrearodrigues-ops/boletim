@@ -48,7 +48,6 @@ def fetch_list():
             continue
         titulo = h2.get_text(strip=True)
         url = a["href"]
-        # tenta achar “publicado DD/MM/AAAA HHhMM” no bloco seguinte
         bloco = ""
         sib = h2.find_next()
         if sib:
@@ -133,61 +132,7 @@ Texto:
     return (prompt[:1500] + "...")
 
 def render_email(titulo, publicado_em, link_pdf, link_page, resumo):
-    def render_email_lista(boletins):
-    tpl_path = os.path.join("templates", "email_lista.html.j2")
-    if os.path.exists(tpl_path):
-        with open(tpl_path, "r", encoding="utf-8") as f:
-            tpl = Template(f.read())
-        return tpl.render(boletins=boletins)
-
-    # fallback simples
-    html = "<h1>Novos Boletins Epidemiológicos</h1>"
-    for b in boletins:
-        html += f"<h3>{b['titulo']}</h3>"
-        html += f"<p><strong>Publicado em:</strong> {b['publicado_em'] or '—'}</p>"
-        html += f"<a href='{b['link_pdf'] or b['link_page']}'>Abrir documento</a>"
-        html += f"<pre>{b['resumo']}</pre><hr>"
-    return html
-
-    def render_email_batch(itens):
-    """
-    itens: lista de dicts com chaves:
-      - titulo, publicado_em, link_pdf, link_page, resumo
-    Gera um único HTML com índice + seções.
-    """
-    # HTML minimalista (se quiser, pode migrar para Jinja depois)
-    parts = []
-    # Índice
-    toc = ["<ol>"]
-    for i, it in enumerate(itens, start=1):
-        anchor = f"sec{i}"
-        toc.append(f'<li><a href="#{anchor}">{it["titulo"]}</a></li>')
-    toc.append("</ol>")
-    parts.append("<h1>Boletins Epidemiológicos – Resumo</h1>")
-    parts.append(f"<p>Novidades nesta execução: <b>{len(itens)}</b></p>")
-    parts.append("\n".join(toc))
-
-    # Seções
-    for i, it in enumerate(itens, start=1):
-        anchor = f"sec{i}"
-        link = it["link_pdf"] or it["link_page"]
-        parts.append(f'''
-        <hr/>
-        <h2 id="{anchor}">{it["titulo"]}</h2>
-        <p style="color:#6b7280;font-size:12px">
-          Publicado em: {it.get("publicado_em") or "—"} ·
-          <a href="{link}" target="_blank" rel="noopener">Documento</a>
-        </p>
-        <pre style="white-space:pre-wrap;font:14px/1.5 system-ui">{it["resumo"]}</pre>
-        <p><a href="{link}" target="_blank" rel="noopener" 
-              style="display:inline-block;padding:10px 16px;border-radius:10px;background:#111827;color:#fff;text-decoration:none">
-              Abrir documento
-           </a></p>
-        ''')
-    parts.append('<p style="color:#6b7280;font-size:12px">Resumo automatizado para fins informativos. Consulte sempre o documento oficial.</p>')
-    return "\n".join(parts)
-
-    # carrega template do repositório
+    """Template de e-mail unitário (mantido para retrocompatibilidade)."""
     tpl_path = os.path.join("templates", "email.html.j2")
     if os.path.exists(tpl_path):
         with open(tpl_path, "r", encoding="utf-8") as f:
@@ -196,6 +141,23 @@ def render_email(titulo, publicado_em, link_pdf, link_page, resumo):
     # fallback simples
     safe_link = link_pdf or link_page
     return f"<h2>{titulo}</h2><p><a href='{safe_link}'>Documento</a></p><pre>{resumo}</pre>"
+
+def render_email_lista(boletins):
+    """Gera um único HTML com todos os boletins novos."""
+    tpl_path = os.path.join("templates", "email_lista.html.j2")
+    if os.path.exists(tpl_path):
+        with open(tpl_path, "r", encoding="utf-8") as f:
+            tpl = Template(f.read())
+        return tpl.render(boletins=boletins)
+
+    # fallback simples (sem Jinja)
+    html = "<h1>Novos Boletins Epidemiológicos</h1>"
+    for b in boletins:
+        html += f"<h3>{b['titulo']}</h3>"
+        html += f"<p><strong>Publicado em:</strong> {b['publicado_em'] or '—'}</p>"
+        html += f"<a href='{b['link_pdf'] or b['link_page']}'>Abrir documento</a>"
+        html += f"<pre>{b['resumo']}</pre><hr>"
+    return html
 
 def send_email(subject, html_body):
     if not SENDGRID_API_KEY or not REPORT_TO_EMAIL:
@@ -225,7 +187,6 @@ def log_envio(conn, cur, boletim_id, canal, status):
     conn.commit()
 
 def main():
-    def main():
     conn, cur = db()
     novos = [i for i in fetch_list() if is_new(cur, i)]
 
@@ -236,7 +197,6 @@ def main():
     logging.info("Novos boletins detectados: %d", len(novos))
 
     boletins_processados = []
-
     for item in novos:
         save_item(conn, cur, item)
         pdf_link, text = find_pdf_and_text(item["url"])
@@ -249,10 +209,9 @@ def main():
             "resumo": resumo
         })
 
-    # Renderiza um único e-mail com todos os resumos
+    # ÚNICO e-mail consolidado
     email_html = render_email_lista(boletins_processados)
     subject = f"[MS] {len(boletins_processados)} novos boletins epidemiológicos"
-
     send_email(subject=subject, html_body=email_html)
     logging.info("E-mail consolidado enviado com sucesso.")
 
