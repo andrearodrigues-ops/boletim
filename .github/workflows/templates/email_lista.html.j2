@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background:#f9fafb; margin:0; padding:20px; color:#111827; }
+    .container { max-width:800px; margin:auto; background:#fff; border-radius:12px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+    h1 { font-size:22px; color:#111827; margin-bottom:24px; }
+    .boletim { border-top:1px solid #e5e7eb; padding-top:16px; margin-top:16px; }
+    .titulo { font-size:18px; font-weight:600; margin-bottom:8px; color:#1e40af; }
+    .meta { font-size:13px; color:#6b7280; margin-bottom:8px; }
+    .resumo { font-size:14px; line-height:1.6; white-space:pre-wrap; }
+    a.botao { display:inline-block; margin-top:10px; background:#1e40af; color:#fff; padding:8px 14px; border-radius:8px; text-decoration:none; font-size:14px; }
+    a.botao:hover { background:#1d4ed8; }
+    footer { font-size:12px; color:#6b7280; text-align:center; margin-top:32px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Novos Boletins Epidemiológicos</h1>
+
+    {% for b in boletins %}
+      <div class="boletim">
+        <div class="titulo">{{ b.titulo }}</div>
+        <div class="meta">
+          Publicado em: {{ b.publicado_em or "—" }}
+        </div>
+        <div class="resumo">{{ b.resumo }}</div>
+        <a class="botao" href="{{ b.link_pdf or b.link_page }}" target="_blank">Abrir documento</a>
+      </div>
+    {% endfor %}
+
+    <footer>
+      Este resumo é gerado automaticamente pelo monitor de boletins do Ministério da Saúde.<br>
+      Recomenda-se sempre a leitura do documento completo.
+    </footer>
+  </div>
+</body>
+</html>
