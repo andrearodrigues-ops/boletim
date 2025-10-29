@@ -15,6 +15,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
 REPORT_TO_EMAIL = os.getenv("REPORT_TO_EMAIL", "")
 REPORT_FROM_EMAIL = os.getenv("REPORT_FROM_EMAIL", "noreply@domain.com")
+FORCE_TEST_EMAIL = os.getenv("FORCE_TEST_EMAIL", "false").lower() == "true"
 
 def db():
     conn = sqlite3.connect(DB_PATH)
@@ -187,6 +188,7 @@ def log_envio(conn, cur, boletim_id, canal, status):
     conn.commit()
 
 def main():
+   def main():
     conn, cur = db()
     novos = [i for i in fetch_list() if is_new(cur, i)]
 
@@ -195,24 +197,7 @@ def main():
         return
 
     logging.info("Novos boletins detectados: %d", len(novos))
-
-    boletins_processados = []
-    for item in novos:
-        save_item(conn, cur, item)
-        pdf_link, text = find_pdf_and_text(item["url"])
-        resumo = summarize(item["titulo"], text)
-        boletins_processados.append({
-            "titulo": item["titulo"],
-            "publicado_em": item.get("publicado_em"),
-            "link_pdf": pdf_link,
-            "link_page": item["url"],
-            "resumo": resumo
-        })
-
-    # ÚNICO e-mail consolidado
-    email_html = render_email_lista(boletins_processados)
-    subject = f"[MS] {len(boletins_processados)} novos boletins epidemiológicos"
-    send_email(subject=subject, html_body=email_html)
+    ...
     logging.info("E-mail consolidado enviado com sucesso.")
 
 if __name__ == "__main__":
