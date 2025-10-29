@@ -1,4 +1,6 @@
 name: Monitor MS Boletins (diagnóstico)
+permissions:
+  contents: write
 
 on:
   workflow_dispatch:
@@ -47,3 +49,16 @@ jobs:
         run: |
           set -e
           python app.py
+      - name: Persistir banco (boletins.db)
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # garante que o arquivo existe antes de tentar comitar
+          if [ -f boletins.db ]; then
+            git add boletins.db
+            git commit -m "chore: update boletins DB [skip ci]" || echo "Sem alterações no banco"
+            git push
+          else
+            echo "boletins.db não encontrado (primeira execução? verifique o app.py)."
+          fi
