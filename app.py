@@ -171,20 +171,26 @@ def log_envio(conn, cur, boletim_id, canal, status):
     conn.commit()
 
 def main():
-    conn, cur = db()
+    conn, cur = db()  # se seu app tiver a função db(); caso não, crie o SQLite simples
     novos = []
     for item in fetch_list():
-        if is_new(cur, item):
+        if is_new(cur, item):   # compara com o que já foi visto
             novos.append(item)
+
+    if not novos:
+        logging.info("Nenhuma novidade. Nada será enviado.")
+        return  # <- ponto-chave: encerra sem enviar e-mail
+
     logging.info("Novos boletins detectados: %d", len(novos))
+
     for item in novos:
-        save_item(conn, cur, item)
-        pdf_link, text = find_pdf_and_text(item["url"])
-        resumo = summarize(item["titulo"], text)
-        email_html = render_email(item["titulo"], item["publicado_em"], pdf_link, item["url"], resumo)
-        email_status = send_email(subject=f"[MS] {item['titulo']}", html_body=email_html)
-        log_envio(conn, cur, item["sha"], "email", email_status)
-        logging.info("Boletim: %s | email=%s", item["titulo"], email_status)
+        save_item(conn, cur, item)  # grava no banco para não enviar de novo no próximo run
+        pdf_link, text = find_pdf_and_text(item["url"])  # opcional
+        resumo = summarize(item["titulo"], text)         # IA opcional
+        email_html = render_email(item["titulo"], item.get("publicado_em"), pdf_link, item["url"], resumo)
+        send_email(subject=f"[MS] {item['titulo']}", html_body=email_html)
+        logging.info("Enviado: %s", item["titulo"])
+
 
 if __name__ == "__main__":
     main()
