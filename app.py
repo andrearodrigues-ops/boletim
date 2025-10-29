@@ -133,6 +133,44 @@ Texto:
     return (prompt[:1500] + "...")
 
 def render_email(titulo, publicado_em, link_pdf, link_page, resumo):
+    def render_email_batch(itens):
+    """
+    itens: lista de dicts com chaves:
+      - titulo, publicado_em, link_pdf, link_page, resumo
+    Gera um único HTML com índice + seções.
+    """
+    # HTML minimalista (se quiser, pode migrar para Jinja depois)
+    parts = []
+    # Índice
+    toc = ["<ol>"]
+    for i, it in enumerate(itens, start=1):
+        anchor = f"sec{i}"
+        toc.append(f'<li><a href="#{anchor}">{it["titulo"]}</a></li>')
+    toc.append("</ol>")
+    parts.append("<h1>Boletins Epidemiológicos – Resumo</h1>")
+    parts.append(f"<p>Novidades nesta execução: <b>{len(itens)}</b></p>")
+    parts.append("\n".join(toc))
+
+    # Seções
+    for i, it in enumerate(itens, start=1):
+        anchor = f"sec{i}"
+        link = it["link_pdf"] or it["link_page"]
+        parts.append(f'''
+        <hr/>
+        <h2 id="{anchor}">{it["titulo"]}</h2>
+        <p style="color:#6b7280;font-size:12px">
+          Publicado em: {it.get("publicado_em") or "—"} ·
+          <a href="{link}" target="_blank" rel="noopener">Documento</a>
+        </p>
+        <pre style="white-space:pre-wrap;font:14px/1.5 system-ui">{it["resumo"]}</pre>
+        <p><a href="{link}" target="_blank" rel="noopener" 
+              style="display:inline-block;padding:10px 16px;border-radius:10px;background:#111827;color:#fff;text-decoration:none">
+              Abrir documento
+           </a></p>
+        ''')
+    parts.append('<p style="color:#6b7280;font-size:12px">Resumo automatizado para fins informativos. Consulte sempre o documento oficial.</p>')
+    return "\n".join(parts)
+
     # carrega template do repositório
     tpl_path = os.path.join("templates", "email.html.j2")
     if os.path.exists(tpl_path):
@@ -171,25 +209,48 @@ def log_envio(conn, cur, boletim_id, canal, status):
     conn.commit()
 
 def main():
-    conn, cur = db()  # se seu app tiver a função db(); caso não, crie o SQLite simples
+    conn, cur = db()
+
+    # 1) Detectar novidades
     novos = []
     for item in fetch_list():
-        if is_new(cur, item):   # compara com o que já foi visto
+        if is_new(cur, item):
             novos.append(item)
 
     if not novos:
         logging.info("Nenhuma novidade. Nada será enviado.")
-        return  # <- ponto-chave: encerra sem enviar e-mail
+        return
 
     logging.info("Novos boletins detectados: %d", len(novos))
 
+    # 2) Persistir no banco (para não repetir no próximo run)
     for item in novos:
-        save_item(conn, cur, item)  # grava no banco para não enviar de novo no próximo run
-        pdf_link, text = find_pdf_and_text(item["url"])  # opcional
-        resumo = summarize(item["titulo"], text)         # IA opcional
-        email_html = render_email(item["titulo"], item.get("publicado_em"), pdf_link, item["url"], resumo)
-        send_email(subject=f"[MS] {item['titulo']}", html_body=email_html)
-        logging.info("Enviado: %s", item["titulo"])
+        save_item(conn, cur, item)
+
+    # 3) Enriquecer + Resumir (cada um)
+    lote = []
+    for item in novos:
+        pdf_link, text = find_pdf_and_text(item["url"])
+        resumo = summarize(item["titulo"], text)
+        lote.append({
+            "titulo": item["titulo"],
+            "publicado_em": item.get("publicado_em"),
+            "link_pdf": pdf_link,
+            "link_page": item["url"],
+            "resumo": resumo,
+        })
+
+    # 4) Montar um único e-mail com tudo
+    html_body = render_email_batch(lote)
+
+    # 5) Assunto amigável (contagem + data)
+    hoje = datetime.now(timezone.utc).strftime("%d/%m/%Y")
+    subject = f"[MS] {len(lote)} boletim(ns) novo(s) – {hoje}"
+
+    # 6) Enviar 1 e-mail
+    status = send_email(subject=subject, html_body=html_body)
+    logging.info("Envio consolidado: %s", status)
+
 
 
 if __name__ == "__main__":
