@@ -44,16 +44,16 @@ jobs:
           MS_URL: "https://www.gov.br/saude/pt-br/centrais-de-conteudo/publicacoes/boletins/epidemiologicos/ultimos"
           DB_PATH: boletins.db
           CHECK_LIMIT: "20"
-          # Se quiser garantir IA ligada, fixe "OPENAI"; caso contrário, use uma repo variable LLM_PROVIDER
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'OPENAI' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           REPORT_TO_EMAIL: ${{ secrets.REPORT_TO_EMAIL }}
           REPORT_FROM_EMAIL: ${{ secrets.REPORT_FROM_EMAIL }}
+          FORCE_TEST_EMAIL: "true"   # 👈 adicione esta linha, apenas para teste
         run: |
           set -e
           python app.py
-
+          
       - name: Persistir banco (boletins.db)
         if: always()
         env:
