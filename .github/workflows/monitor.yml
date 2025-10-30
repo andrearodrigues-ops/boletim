@@ -44,7 +44,7 @@ jobs:
           MS_URL: "https://www.gov.br/saude/pt-br/centrais-de-conteudo/publicacoes/boletins/epidemiologicos/ultimos"
           DB_PATH: boletins.db
           CHECK_LIMIT: "20"
-          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'OPENAI' }}
+          LLM_PROVIDER: "OPENAI"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           REPORT_TO_EMAIL: ${{ secrets.REPORT_TO_EMAIL }}
