@@ -177,14 +177,15 @@ def render_email(titulo, publicado_em, link_pdf, link_page, resumo):
     return f"<h2>{titulo}</h2><p><a href='{safe_link}'>Documento</a></p><pre>{resumo}</pre>"
 
 def render_email_lista(boletins):
-    """Gera um único HTML com todos os boletins novos (lista consolidada)."""
     tpl_path = os.path.join("templates", "email_lista.html.j2")
+    logging.info("Procurando template consolidado em: %s", tpl_path)
     if os.path.exists(tpl_path):
+        logging.info("Template encontrado. Renderizando com Jinja2.")
         with open(tpl_path, "r", encoding="utf-8") as f:
             tpl = Template(f.read())
         return tpl.render(boletins=boletins)
-
-    # fallback simples (sem Jinja)
+    logging.warning("Template NÃO encontrado. Usando fallback simples.")
+    # fallback simples
     html = "<h1>Novos Boletins Epidemiológicos</h1>"
     for b in boletins:
         html += f"<h3>{b['titulo']}</h3>"
